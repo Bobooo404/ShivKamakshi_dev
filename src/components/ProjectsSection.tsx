@@ -8,6 +8,7 @@ import {
   Maximize2,
   X,
   Building2,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface ProjectsSectionProps {
@@ -21,6 +22,8 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
 }) => {
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [mainManual, setMainManual] = useState<boolean>(false);
+  const [fsManual, setFsManual] = useState<boolean>(false);
 
   const currentProject = PROJECTS_DATA[activeProjectIndex] || PROJECTS_DATA[0];
 
@@ -37,17 +40,29 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
     setActiveImageIndex((prev) => (prev === effectiveImages.length - 1 ? 0 : prev + 1));
   };
 
-  // Mobile: auto-advance images every 2 seconds
+  // Mobile: auto-advance images every 2 seconds (stops once user takes manual control)
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 639px)');
-    if (!mq.matches || effectiveImages.length < 2 || fullscreenImage) return;
+    if (!mq.matches || effectiveImages.length < 2 || fullscreenImage || mainManual) return;
     const timer = window.setInterval(() => {
       setActiveImageIndex((prev) =>
         prev === effectiveImages.length - 1 ? 0 : prev + 1
       );
     }, 2000);
     return () => window.clearInterval(timer);
-  }, [effectiveImages.length, fullscreenImage, activeProjectIndex]);
+  }, [effectiveImages.length, fullscreenImage, activeProjectIndex, mainManual]);
+
+  // Fullscreen (mobile): auto-advance images every 2 seconds (stops once user swipes)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    if (!mq.matches || !fullscreenImage || effectiveImages.length < 2 || fsManual) return;
+    const timer = window.setInterval(() => {
+      setActiveImageIndex((prev) =>
+        prev === effectiveImages.length - 1 ? 0 : prev + 1
+      );
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [fullscreenImage, effectiveImages.length, activeProjectIndex, fsManual]);
 
   // Touch swipe for main gallery
   const touchStartX = useRef(0);
@@ -59,6 +74,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   const handleTouchEnd = (e: React.TouchEvent) => {
     const diff = touchStartX.current - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 50) {
+      setMainManual(true);
       if (diff > 0) handleNextImage();
       else handlePrevImage();
     }
@@ -68,9 +84,13 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   useEffect(() => {
     if (!fullscreenImage) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') handleNextImage();
-      else if (e.key === 'ArrowLeft') handlePrevImage();
-      else if (e.key === 'Escape') setFullscreenImage(null);
+      if (e.key === 'ArrowRight') {
+        setFsManual(true);
+        handleNextImage();
+      } else if (e.key === 'ArrowLeft') {
+        setFsManual(true);
+        handlePrevImage();
+      } else if (e.key === 'Escape') setFullscreenImage(null);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -88,8 +108,13 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
       const now = Date.now();
       if (now - lastWheel < 400) return;
       lastWheel = now;
-      if (e.deltaY > 0) handleNextImage();
-      else if (e.deltaY < 0) handlePrevImage();
+      if (e.deltaY > 0) {
+        setFsManual(true);
+        handleNextImage();
+      } else if (e.deltaY < 0) {
+        setFsManual(true);
+        handlePrevImage();
+      }
     };
     el.addEventListener('wheel', handleWheel, { passive: false });
     return () => el.removeEventListener('wheel', handleWheel);
@@ -105,6 +130,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   const handleFsTouchEnd = (e: React.TouchEvent) => {
     const diff = fsTouchStartX.current - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 50) {
+      setFsManual(true);
       if (diff > 0) handleNextImage();
       else handlePrevImage();
     }
@@ -131,6 +157,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                 onClick={() => {
                   onSelectProject(idx);
                   setActiveImageIndex(0);
+                  setMainManual(false);
                 }}
                 className={`px-4 py-2.5 rounded-sm text-xs font-mono tracking-wider transition-all duration-300 flex items-center gap-2.5 ${
                   isSelected
@@ -206,7 +233,10 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                     <>
                       <button
                         type="button"
-                        onClick={handlePrevImage}
+                        onClick={() => {
+                          setMainManual(true);
+                          handlePrevImage();
+                        }}
                         className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-[#121212]/80 hover:bg-[#D4AF37] text-[#F7F5F0] hover:text-[#121212] border border-[#2A2723] hover:border-[#D4AF37] transition-all backdrop-blur-sm"
                         aria-label="Previous image"
                       >
@@ -214,7 +244,10 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                       </button>
                       <button
                         type="button"
-                        onClick={handleNextImage}
+                        onClick={() => {
+                          setMainManual(true);
+                          handleNextImage();
+                        }}
                         className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-[#121212]/80 hover:bg-[#D4AF37] text-[#F7F5F0] hover:text-[#121212] border border-[#2A2723] hover:border-[#D4AF37] transition-all backdrop-blur-sm"
                         aria-label="Next image"
                       >
@@ -227,9 +260,10 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                   <div className="absolute top-4 right-4 pointer-events-none">
                     <button
                       type="button"
-                      onClick={() =>
-                        setFullscreenImage(effectiveImages[activeImageIndex]?.url || null)
-                      }
+                      onClick={() => {
+                        setFsManual(false);
+                        setFullscreenImage(effectiveImages[activeImageIndex]?.url || null);
+                      }}
                       className="pointer-events-auto p-2 rounded-lg bg-[#121212]/80 hover:bg-[#D4AF37] text-[#9E978E] hover:text-[#121212] border border-[#2A2723] hover:border-[#D4AF37] transition-colors"
                       title="View Fullscreen"
                     >
@@ -244,7 +278,10 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                     {effectiveImages.map((_, dotIdx) => (
                       <button
                         key={dotIdx}
-                        onClick={() => setActiveImageIndex(dotIdx)}
+                        onClick={() => {
+                          setMainManual(true);
+                          setActiveImageIndex(dotIdx);
+                        }}
                         className={`h-2 rounded-full transition-all duration-300 ${
                           activeImageIndex === dotIdx
                             ? 'w-8 bg-[#D4AF37]'
@@ -310,12 +347,22 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
           <button
             type="button"
             onClick={() => setFullscreenImage(null)}
-            className="absolute top-6 right-6 p-3 rounded-full bg-[#181818] border border-[#D4AF37]/30 text-[#F7F5F0] hover:bg-[#D4AF37] hover:text-[#121212] transition-colors"
+            className="absolute top-6 left-6 z-10 flex items-center gap-2 px-5 py-3 rounded-full bg-[#D4AF37] text-[#121212] border border-[#D4AF37] font-bold shadow-[0_0_20px_rgba(212,175,55,0.5)] hover:bg-[#E8C75A] transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-xs font-mono uppercase tracking-widest">Back</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFullscreenImage(null)}
+            className="absolute top-6 right-6 z-10 p-3 rounded-full bg-[#181818] border border-[#D4AF37]/30 text-[#F7F5F0] hover:bg-[#D4AF37] hover:text-[#121212] transition-colors"
+            aria-label="Close fullscreen"
           >
             <X className="w-6 h-6" />
           </button>
           <img
-            src={fullscreenImage}
+            src={effectiveImages[activeImageIndex]?.url || fullscreenImage}
             alt="Fullscreen view"
             referrerPolicy="no-referrer"
             className="max-w-full max-h-[90vh] object-contain rounded-lg border border-[#D4AF37]/30 shadow-2xl"
