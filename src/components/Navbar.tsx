@@ -4,9 +4,10 @@ import { Menu, X, Compass, ChevronRight } from 'lucide-react';
 interface NavbarProps {
   onNavigate: (sectionId: string) => void;
   activeSection: string;
+  isHidden: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onNavigate, activeSection }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onNavigate, activeSection, isHidden }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -32,7 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, activeSection }) => 
   return (
     <header
       id="main-header"
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+      className={`${isHidden ? 'md:hidden' : ''} fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled
           ? 'bg-[#121212]/90 backdrop-blur-md py-4 border-b border-[#D4AF37]/15 shadow-2xl shadow-black/70'
           : 'bg-gradient-to-b from-[#121212]/90 to-transparent py-6'

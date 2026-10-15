@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PROJECTS_DATA } from '../data/mockData';
 import {
   Calendar,
@@ -8,17 +8,18 @@ import {
   Maximize2,
   X,
   Building2,
-  ArrowLeft,
 } from 'lucide-react';
 
 interface ProjectsSectionProps {
   activeProjectIndex: number;
   onSelectProject: (index: number) => void;
+  onFullscreenChange: (isOpen: boolean) => void;
 }
 
 export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   activeProjectIndex,
   onSelectProject,
+  onFullscreenChange,
 }) => {
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
@@ -29,6 +30,19 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
 
   // Default project image gallery
   const effectiveImages = currentProject.images || [];
+
+  const closeFullscreen = useCallback(() => {
+    setFullscreenImage(null);
+    onFullscreenChange(false);
+  }, [onFullscreenChange]);
+
+  const openFullscreen = () => {
+    const imageUrl = effectiveImages[activeImageIndex]?.url;
+    if (!imageUrl) return;
+    setFsManual(false);
+    setFullscreenImage(imageUrl);
+    onFullscreenChange(true);
+  };
 
   const handlePrevImage = () => {
     if (effectiveImages.length === 0) return;
@@ -90,11 +104,11 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
       } else if (e.key === 'ArrowLeft') {
         setFsManual(true);
         handlePrevImage();
-      } else if (e.key === 'Escape') setFullscreenImage(null);
+      } else if (e.key === 'Escape') closeFullscreen();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [fullscreenImage]);
+  }, [fullscreenImage, closeFullscreen]);
 
   // Fullscreen: wheel / scroll to change images
   const fullscreenRef = useRef<HTMLDivElement>(null);
@@ -260,10 +274,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                   <div className="absolute top-4 right-4 pointer-events-none">
                     <button
                       type="button"
-                      onClick={() => {
-                        setFsManual(false);
-                        setFullscreenImage(effectiveImages[activeImageIndex]?.url || null);
-                      }}
+                      onClick={openFullscreen}
                       className="pointer-events-auto p-2 rounded-lg bg-[#121212]/80 hover:bg-[#D4AF37] text-[#9E978E] hover:text-[#121212] border border-[#2A2723] hover:border-[#D4AF37] transition-colors"
                       title="View Fullscreen"
                     >
@@ -340,34 +351,27 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
         <div
           ref={fullscreenRef}
           className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-fadeIn"
-          onClick={() => setFullscreenImage(null)}
+          onClick={closeFullscreen}
           onTouchStart={handleFsTouchStart}
           onTouchEnd={handleFsTouchEnd}
         >
-          <button
-            type="button"
-            onClick={() => setFullscreenImage(null)}
-            className="absolute top-6 left-6 z-10 flex items-center gap-2 px-5 py-3 rounded-full bg-[#D4AF37] text-[#121212] border border-[#D4AF37] font-bold shadow-[0_0_20px_rgba(212,175,55,0.5)] hover:bg-[#E8C75A] transition-colors"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-xs font-mono uppercase tracking-widest">Back</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setFullscreenImage(null)}
-            className="absolute top-6 right-6 z-10 p-3 rounded-full bg-[#181818] border border-[#D4AF37]/30 text-[#F7F5F0] hover:bg-[#D4AF37] hover:text-[#121212] transition-colors"
-            aria-label="Close fullscreen"
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <img
-            src={effectiveImages[activeImageIndex]?.url || fullscreenImage}
-            alt="Fullscreen view"
-            referrerPolicy="no-referrer"
-            className="max-w-full max-h-[90vh] object-contain rounded-lg border border-[#D4AF37]/30 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div className="flex max-w-full max-h-full flex-col items-end">
+            <button
+              type="button"
+              onClick={closeFullscreen}
+              className="mb-3 p-3 rounded-full bg-[#181818] border border-[#D4AF37]/30 text-[#F7F5F0] hover:bg-[#D4AF37] hover:text-[#121212] transition-colors"
+              aria-label="Close fullscreen"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img
+              src={effectiveImages[activeImageIndex]?.url || fullscreenImage}
+              alt="Fullscreen view"
+              referrerPolicy="no-referrer"
+              className="max-w-full max-h-[calc(90vh-4rem)] object-contain rounded-lg border border-[#D4AF37]/30 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
         </div>
       )}
     </section>

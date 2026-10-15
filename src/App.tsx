@@ -11,6 +11,7 @@ export default function App() {
   const [scrollProgress, setScrollProgress] = useState<number>(0);
   const [activeSection, setActiveSection] = useState<string>('home');
   const [activeProjectIndex, setActiveProjectIndex] = useState<number>(0);
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState<boolean>(false);
   const [manualTierOverride, setManualTierOverride] = useState<
     'foundation' | 'podium' | 'midrise' | 'skyvillas' | 'crown' | null
   >(null);
@@ -103,7 +104,11 @@ export default function App() {
       <div className="fixed inset-0 z-0 pointer-events-none bg-[#0A0A0B]/45" />
 
       {/* Primary Fixed Navbar (Strictly Home, Projects, Our Services) */}
-      <Navbar onNavigate={handleNavigate} activeSection={activeSection} />
+      <Navbar
+        onNavigate={handleNavigate}
+        activeSection={activeSection}
+        isHidden={isFullscreenOpen}
+      />
 
       {/* Scrollable Foreground Content */}
       <main className="relative z-10">
@@ -117,6 +122,7 @@ export default function App() {
         <ProjectsSection
           activeProjectIndex={activeProjectIndex}
           onSelectProject={handleSelectProject}
+          onFullscreenChange={setIsFullscreenOpen}
         />
 
         {/* 3. Our Services / Connect Section */}
